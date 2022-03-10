@@ -29,3 +29,4 @@ TO DO:
 - also accept path to HTML file
 - tidy up ad hoc tempfile handler for raw HTML
 - handle requirements, webdriver setup etc
+- hack a thing to grab `__repr_html__` ouput and render it to png
