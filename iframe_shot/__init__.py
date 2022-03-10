@@ -17,7 +17,10 @@ class IFrameShot:
         self.mimetype = None
         if init:
             self.init_browser()
-            
+
+    def __del__(self):
+        if self.browser is not None:
+            self.browser.quit()    
     
     # Should we allow support different browsers for the screengrabs?
     # # eg Firefox as well as Chrome? OR is `force-device-scale-factor` chrome only (or maybe there is a Firefox equivalent?) What does it do, anyway?
