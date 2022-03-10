@@ -24,6 +24,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "ipython",
+        "selenium"
     ],
     extras_require={},
     entry_points="""
