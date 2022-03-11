@@ -23,10 +23,17 @@ grabber.getHTMLPNG(html)
 # grabber.getHTMLPNG(html, embedded=False)
 ```
 
+As well as passing in a raw HTML string, we can also path in a path to an HTML file or an object with a `_repr_html_()` function.
+
+Passing a filename via `html_out=FILENAME` will write the HTML that was rendered to that file.
+
+Passing a filename via `png_out=FILENAME` will write the image out to a file of that name.
+
+Setting `embedded=True` will return an `IPytton.display.HTML()` wrapped image tag containing a data URI. Setting `embedded=False` will return an image tag pointing to a local file.
+
+Setting `quiet=False` will suppress the return of any displayabe output image.
+
 
 TO DO:
 
-- also accept path to HTML file
-- tidy up ad hoc tempfile handler for raw HTML
 - handle requirements, webdriver setup etc
-- hack a thing to grab `__repr_html__` ouput and render it to png

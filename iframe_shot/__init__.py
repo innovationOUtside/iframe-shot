@@ -5,13 +5,18 @@ import tempfile
 import mimetypes
 import base64
 from IPython.display import Image, HTML
+from pathlib import Path
+from urllib import request
+import uuid
+from importlib.util import find_spec
 
 class IFrameShot:
-    def __init__(self, init=False, scale_factor=2,
+    def __init__(self, init=False, scale_factor=2, quiet=False,
                 headless=True, browser_type='firefox'):
         self.browser = None
         self.headless = headless
         self.scale_factor = scale_factor
+        self.quiet = quiet
         self.browser_type = browser_type
         self.raw = None
         self.mimetype = None
@@ -54,6 +59,11 @@ class IFrameShot:
         driver.find_element_by_tag_name('body').screenshot(path)  # avoids scrollbar
         driver.set_window_size(original_size['width'], original_size['height'])
 
+    def _get_repr_html(self, obj):
+        """If available, return _repr_html_ html string from object"""
+        if hasattr(obj, "_repr_html_") and callable(getattr(obj, "_repr_html_")):
+            return obj._repr_html_()
+        return obj
 
     def data_uri(self):
         """Return data URI. """
@@ -75,8 +85,7 @@ class IFrameShot:
             
 
     def captureImage(self, url, delay=None, scale_factor=2,
-                    height=420, width=800,
-                    logging=False, save=True):
+                    height=420, width=800):
         ''' Render HTML file in browser and grab a screenshot. '''
         
         #options = Options()
@@ -107,27 +116,84 @@ class IFrameShot:
         """Return data URI as via IPython.display.Image"""
         return HTML(self.img_tag())
 
+    def set_quiet(self, quiet=False):
+        self.quiet = quiet
 
     # Create a function that accepts some HTML, opens it in a browser,
     # grabs a screenshot, saves image and returns filepath to image.
-    def getHTMLPNG(self, html, basepath='.', path='testpng',
-                    fnstub='testhtml', scale_factor=2, embedded=True):
-        ''' Save HTML as file. '''
-        # We should really pop the HTML in a temporary file
-        if not os.path.exists(path):
-            os.makedirs('{}/{}'.format(basepath, path))
-        fn= f'{os.getcwd()}/{basepath}/{path}/{fnstub}.html'
+    def getHTMLPNG(self, html, html_out=None, png_out=None,
+                     scale_factor=2, embedded=True):
+        ''' Save HTML as file.
+            Pass an HTML string, url, filepath or file object.'''
 
+        # Have we been passed a string?
+        if isinstance(html, str):
+            # Is it likely a URL?
+            if html.startswith("http"):
+                # If so, download it and get the HTML
+                html = request.urlopen(html).read().decode('utf8')
+            # or perhaps a local file? 
+            elif Path(html).is_file():
+                html = Path(html).read_text()
+            else:
+                # Assume it's HTML
+                html = html
+
+        else:
+            # Or do we have an object which has a _repr_html_ method?
+            # For pandas, see if we have a pandas style object
+            # or an object with a to_html() method.
+            # For an unstyled dataframe, we are missing the notebook stylesheet
+            try:
+                if hasattr(html, "style"):
+                    html = html.style.to_html()
+                else:
+                    # Maybe we were passed a styler object
+                    # or a series/dataframe?
+                    html = html.to_html()
+            except:
+                # Is there a _repr_html_?
+                html = self._get_repr_html(html)
+
+        # If there appears to be no HTML, give up now
+        if not html:
+            return
+
+        # If we were given an HTML output filename, use it
+        if html_out:
+            fn = Path(html_out).resolve()
+        else:
+            # Create a (temporary) unique filename
+            fn = Path(f'{str(uuid.uuid4())}.html').resolve()
+
+        # Write the HTML to the file
         with open(fn, 'w') as out:
             out.write(html)
 
+        # Get a file:// path we can use as a browser URL
         tmpurl = f'file://{fn}'
+
+        # Load the file into the automated browser and grab a screenshot
         self.captureImage(tmpurl, scale_factor=scale_factor)
-        os.remove(fn)
-        
-        if not embedded:
-            fn= f'{os.getcwd()}/{basepath}/{path}/{fnstub}.png'
+
+        # If we created the temporary html file, delete it
+        if not html_out:
+            fn.unlink()
+
+        # If we aren't embedding the image, return the filepath
+        if not embedded or png_out:
+            if png_out:
+                fn = png_out
+            else:
+                # Create a (temporary) unique filename
+                fn = f'{str(uuid.uuid4())}.png'
+
             with open(fn, 'wb') as out:
                 out.write(base64.b64decode(self.raw))
-                return fn
-        return self.img()
+
+            if not embedded:
+                return HTML(f'<img src="{fn}" />')
+
+        # If we're not being quiet, return the image
+        if not self.quiet:
+            return self.img()
