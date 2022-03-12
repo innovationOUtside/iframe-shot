@@ -12,7 +12,6 @@ from iframe_shot import IFrameShot
 grabber = IFrameShot(True)
 
 # HTML string
-# TO DO - also allow an html file path
 html = "<html><body><h1>hello there</h1></body></html>"
 
 # Render HTML in browser and grab screenshot
@@ -29,7 +28,7 @@ Passing a filename via `html_out=FILENAME` will write the HTML that was rendered
 
 Passing a filename via `png_out=FILENAME` will write the image out to a file of that name.
 
-Setting `embedded=True` will return an `IPytton.display.HTML()` wrapped image tag containing a data URI. Setting `embedded=False` will return an image tag pointing to a local file.
+Setting `embedded=True` will return an `IPython.display.HTML()` wrapped image tag containing a data URI. Setting `embedded=False` will return an image tag pointing to a local file.
 
 Setting `quiet=False` will suppress the return of any displayabe output image.
 
